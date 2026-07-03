@@ -4,7 +4,7 @@
 
 ![demo](docs/assets/demo.gif)
 
-Drag a target in 3D, the simulated [SO-101](https://github.com/TheRobotStudio/SO-ARM100) arm follows via analytic IK. Press `R`, do the task, press `R` again — that's one imitation-learning episode. Export the whole session as a [LeRobot](https://github.com/huggingface/lerobot)-compatible dataset, or stream the same joint targets to a real $100 SO-101 over WebSocket.
+Drag a target in 3D — or wave your bare hand at your webcam — and the simulated [SO-101](https://github.com/TheRobotStudio/SO-ARM100) (official URDF, rigid-body physics) follows via analytic IK. Press `R`, do the task, press `R` again — that's one imitation-learning episode with state **and camera** observations. Export it as a [LeRobot](https://github.com/huggingface/lerobot)-compatible dataset, train ACT on it, export to ONNX, and **watch your own policy drive the arm back in the browser**. Or stream the same joint targets to a real $100 SO-101 over WebSocket.
 
 No ROS. No VR headset. No robot required to start.
 
@@ -20,12 +20,14 @@ That's it. You are teleoperating a robot arm.
 
 ## What it does
 
-- **Browser teleoperation** — drag the yellow target, the arm follows (analytic elbow-up IK, servo-speed-limited like real Feetech servos). Or switch to per-joint sliders.
-- **Hand-tracking teleoperation** — enable your webcam and drive the arm with your bare hand (MediaPipe hand landmarks, fully in-browser): move to steer, bring your hand closer or farther to control reach, make a fist to grab and open your hand to release.
-- **Episode recording at 30 Hz** — `observation.state` (6 joints), `action` (6 joint targets), `observation.environment_state` (cube pose), the same feature layout LeRobot trains on.
-- **A built-in pick-and-place task** — grab the cube, drop it in the bin. Success is detected automatically. Episodes persist in your browser between sessions.
+- **The real SO-101** — the official URDF + STL meshes from TheRobotStudio, joint limits and kinematics calibrated against the model (grasp-point IK exact to <2 mm across the workspace).
+- **Rigid-body physics** — Rapier (WASM): the cube falls, slides, gets nudged by the gripper, and lands in the bin for real. Grasping stays kinematic on purpose, so demonstrations are clean.
+- **Browser teleoperation** — drag the yellow target, the arm follows (analytic elbow-up IK with automatic approach-angle relaxation at joint limits, servo-speed-limited like real Feetech servos). Or per-joint sliders.
+- **Hand-tracking teleoperation** — drive the arm with your bare hand via webcam (MediaPipe, fully in-browser): move to steer, closer/farther for reach, fist to grab, open hand to release.
+- **Episode recording at 30 Hz** — `observation.state`, `action`, `observation.environment_state` (cube pose), **plus two camera streams** (fixed front + wrist cam, 320×240 JPEG) rendered offscreen with the teleop overlays stripped out — the same feature layout LeRobot trains on.
 - **Replay** — play any recorded episode back in the sim before you spend GPU hours on it.
-- **LeRobot export** — one click downloads `dataset.json`; one command converts it to a real `LeRobotDataset` (parquet + metadata) ready for `lerobot` training scripts or the Hugging Face Hub.
+- **LeRobot export** — one click downloads a ZIP; one command converts it to a real `LeRobotDataset` (parquet + encoded videos) ready for `lerobot` training or the Hugging Face Hub.
+- **In-browser policy playback** — load an ONNX-exported ACT policy and it drives the arm at 30 Hz via onnxruntime-web. The full collect → train → deploy loop without leaving your desk: [docs/TRAINING.md](docs/TRAINING.md).
 - **Real-robot bridge** — the same 30 Hz action stream drives a physical SO-101 through `scripts/so101_bridge.py`.
 
 ## Controls
@@ -46,12 +48,12 @@ Hand-tracking mapping constants (axis signs, ranges, pinch thresholds) live at t
 ## From browser to LeRobot dataset
 
 ```bash
-# 1. record episodes in the browser, click "export dataset"
+# 1. record episodes in the browser, click "export dataset (.zip)"
 # 2. convert:
-pip install lerobot
-python scripts/convert_to_lerobot.py armchair_dataset_2026-07-03.json \
-    --repo-id yourname/armchair-so101-pick --push
-# 3. train any lerobot policy (ACT, diffusion, ...) on it
+pip install lerobot pillow
+python scripts/convert_to_lerobot.py armchair_dataset_2026-07-04.zip \
+    --repo-id yourname/armchair-so101-pick --skip-failed --push
+# 3. train any lerobot policy (ACT, diffusion, ...) on it — see docs/TRAINING.md
 ```
 
 The exported features:
@@ -61,6 +63,8 @@ The exported features:
 | `observation.state` | (6,) | joint positions, radians (gripper 0–1) |
 | `action` | (6,) | commanded joint targets |
 | `observation.environment_state` | (3,) | cube xyz — free ground truth from the sim |
+| `observation.images.front` | (240,320,3) | fixed scene camera |
+| `observation.images.wrist` | (240,320,3) | gripper-mounted camera |
 
 ## Driving a real SO-101
 
@@ -84,9 +88,12 @@ Sim-first, hardware later — see [docs/ROADMAP.md](docs/ROADMAP.md).
 - [x] webcam hand-tracking teleoperation (MediaPipe, in-browser)
 - [x] LeRobot dataset export / conversion
 - [x] WebSocket bridge to a real SO-101
-- [ ] camera observations (offscreen render → dataset video streams)
-- [ ] in-browser policy playback (ONNX runtime web)
+- [x] official SO-101 URDF model + calibrated kinematics
+- [x] rigid-body physics (Rapier WASM)
+- [x] camera observations (offscreen render → dataset video streams)
+- [x] in-browser policy playback (onnxruntime-web) + ACT training guide
 - [ ] multi-cube / randomized task variants
+- [ ] policy rollout success-rate benchmark in the sim
 - [ ] leader-arm and gamepad input
 
 ## License

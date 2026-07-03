@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { JOINT_NAMES, LIMITS, clamp } from '../lib/kinematics'
 import { cubeInBin, resetCube, sim, syncGizmoToTip, type Episode } from '../lib/sim'
 import { downloadDataset } from '../lib/exporter'
+import { loadPolicy, startPolicy, stopPolicy } from '../lib/policy'
 import { connectRobot, disconnectRobot } from '../lib/ws'
 import { playEpisode, stopPlaying, toggleRecord } from '../state/actions'
 import { useStore } from '../state/store'
@@ -14,6 +15,7 @@ interface Snap {
   frames: number
   recElapsed: number
   inBin: boolean
+  recordCameras: boolean
 }
 
 function takeSnap(): Snap {
@@ -25,6 +27,7 @@ function takeSnap(): Snap {
     frames: sim.frames.length,
     recElapsed: sim.recording ? sim.time - sim.recStart : 0,
     inBin: cubeInBin(),
+    recordCameras: sim.recordCameras,
   }
 }
 
@@ -99,6 +102,9 @@ export function Panel() {
     handEnabled,
     handStatus,
     setHandEnabled,
+    policyStatus,
+    policyName,
+    setPolicy,
   } = useStore()
 
   useEffect(() => {
@@ -125,9 +131,19 @@ export function Panel() {
           <span>task</span>
           <input value={task} onChange={(e) => setTask(e.target.value)} disabled={recording} />
         </label>
+        <label className="ep-success">
+          <input
+            type="checkbox"
+            checked={snap.recordCameras}
+            disabled={recording}
+            onChange={(e) => (sim.recordCameras = e.target.checked)}
+          />
+          camera observations (front + wrist, 320×240)
+        </label>
         <p className="hint">
           cube in bin: <span className="mono">{snap.inBin ? 'yes' : 'no'}</span> — episodes stopped while the cube is
-          in the bin are marked success automatically.
+          in the bin are marked success automatically. Camera frames live in memory until export; a page refresh
+          keeps state streams but drops images.
         </p>
       </section>
 
@@ -218,7 +234,7 @@ export function Panel() {
             </p>
             <div className="row-2">
               <button className="primary" onClick={() => downloadDataset(episodes)}>
-                export dataset
+                export dataset (.zip)
               </button>
               <button
                 className="ghost"
@@ -230,10 +246,63 @@ export function Panel() {
               </button>
             </div>
             <p className="hint">
-              convert to LeRobot: <span className="mono">python scripts/convert_to_lerobot.py dataset.json</span>
+              convert to LeRobot: <span className="mono">python scripts/convert_to_lerobot.py dataset.zip</span>
             </p>
           </>
         )}
+      </section>
+
+      <section>
+        <h2>policy</h2>
+        <input
+          type="file"
+          accept=".onnx"
+          disabled={policyStatus === 'running'}
+          onChange={async (e) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            setPolicy('loading', file.name)
+            try {
+              await loadPolicy(file)
+              setPolicy('loaded', file.name)
+            } catch (err) {
+              console.warn('policy load failed', err)
+              setPolicy('error', file.name)
+            }
+          }}
+        />
+        {policyStatus !== 'none' && (
+          <>
+            <button
+              className={policyStatus === 'running' ? 'wide active-toggle' : 'wide'}
+              disabled={policyStatus === 'loading' || policyStatus === 'error' || recording || playingId !== null}
+              onClick={() => {
+                if (policyStatus === 'running') {
+                  stopPolicy()
+                  setPolicy('loaded')
+                } else {
+                  startPolicy(() => setPolicy('error'))
+                  setPolicy('running')
+                }
+              }}
+            >
+              {policyStatus === 'running' ? 'stop policy' : 'run policy'}
+            </button>
+            <p className="hint">
+              <span className="mono">{policyName}</span> —{' '}
+              {policyStatus === 'loading'
+                ? 'loading…'
+                : policyStatus === 'error'
+                  ? 'failed (expects obs[1,9] → action[…,6], see scripts/export_policy_onnx.py)'
+                  : policyStatus === 'running'
+                    ? 'driving the arm at 30 Hz'
+                    : 'ready'}
+            </p>
+          </>
+        )}
+        <p className="hint">
+          train on your episodes, then watch it drive this arm — see <span className="mono">docs/TRAINING.md</span>
+        </p>
       </section>
 
       <section>

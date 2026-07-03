@@ -1,6 +1,8 @@
 node_modules/
 dist/
 web/public/mediapipe/
+web/public/so101/
+web/public/ort/
 .DS_Store
 __pycache__/
 *.pyc

@@ -5,12 +5,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { clamp } from '../lib/kinematics'
 import { cubeInBin, orbit, sim, stepSim } from '../lib/sim'
 import { useStore } from '../state/store'
-import { Arm } from './Arm'
+import { ArmUrdf } from './ArmUrdf'
+import { CameraCapture, UI_LAYER } from './CameraCapture'
 
 function CameraRig() {
-  const { camera, gl } = useThree()
+  const { camera, gl, raycaster } = useThree()
   const controls = useRef<OrbitControls | null>(null)
   useEffect(() => {
+    camera.layers.enable(UI_LAYER) // viewport shows teleop overlays; obs cameras don't
+    raycaster.layers.enableAll()
     const c = new OrbitControls(camera, gl.domElement)
     c.target.set(0.08, 0.1, 0)
     c.enableDamping = true
@@ -24,7 +27,7 @@ function CameraRig() {
       orbit.controls = null
       c.dispose()
     }
-  }, [camera, gl])
+  }, [camera, gl, raycaster])
   useFrame(() => controls.current?.update())
   return null
 }
@@ -42,6 +45,11 @@ function SimLoop() {
 function TargetGizmo() {
   const group = useRef<THREE.Group>(null)
   const guide = useRef<THREE.Mesh>(null)
+
+  useEffect(() => {
+    group.current?.traverse((o) => o.layers.set(UI_LAYER))
+    guide.current?.layers.set(UI_LAYER)
+  }, [])
   const dragging = useRef(false)
   const plane = useMemo(() => new THREE.Plane(), [])
   const hit = useMemo(() => new THREE.Vector3(), [])
@@ -127,6 +135,7 @@ function Cube() {
   useFrame(() => {
     if (!ref.current) return
     ref.current.position.set(sim.cube.x, sim.cube.y, sim.cube.z)
+    ref.current.quaternion.set(...sim.cube.q)
     if (mat.current) mat.current.color.set(cubeInBin() ? '#39c26d' : '#4f9cf9')
   })
   return (
@@ -171,13 +180,14 @@ export function Scene() {
         shadow-camera-far={3}
       />
       <SimLoop />
+      <CameraCapture />
       <CameraRig />
       <mesh rotation-x={-Math.PI / 2} receiveShadow>
         <circleGeometry args={[0.65, 64]} />
         <meshStandardMaterial color="#141821" roughness={0.95} />
       </mesh>
       <gridHelper args={[1.3, 26, '#2a2f3a', '#1b202a']} position-y={0.0005} />
-      <Arm />
+      <ArmUrdf />
       <Cube />
       <Bin />
       <TargetGizmo />

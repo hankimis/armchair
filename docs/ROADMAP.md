@@ -18,12 +18,19 @@
 - [x] 실물 브릿지 (`so101_bridge.py`, WebSocket 30 Hz 스트리밍)
 - [x] 웹캠 손 추적 텔레오퍼레이션 (MediaPipe HandLandmarker, 브라우저 내 추론 — 손 위치→타깃, 원근→리치, 핀치→그리퍼)
 
+## 1.5단계 — v0.2 업그레이드 (완료)
+
+- [x] 공식 SO-101 URDF/STL 모델 로딩 + 기구학 실측 캘리브레이션 (관절 프레임 측정, R0 오프셋, 접근각 자동 완화 IK)
+- [x] Rapier(WASM) 강체 물리 — 큐브 낙하·밀림·통 충돌, 파지는 안정성 위해 키네마틱 유지
+- [x] 카메라 관측 2뷰 (front 고정 + wrist 사이드마운트, 320×240, 기즈모 레이어 제외, sRGB 보정)
+- [x] ZIP 내보내기 (fflate) + 변환기 영상 스트림 지원
+- [x] 브라우저 정책 재생 (onnxruntime-web, obs[1,9]→action 청크) + 더미 모델 파이프라인 검증
+
 ## 2단계 — 정책 학습 (다음)
 
-- [ ] 수집 데이터로 ACT/diffusion policy 학습 튜토리얼 (`lerobot` 표준 스크립트 사용)
-- [ ] 시뮬 내 성공률 측정: 학습된 정책을 브라우저에서 재생 (ONNX Runtime Web)
+- [x] ACT 학습 튜토리얼 (docs/TRAINING.md) + ONNX 변환기 (scripts/export_policy_onnx.py)
+- [ ] 실제 ACT 정책 학습·시뮬 내 성공률 벤치마크 (자동 롤아웃 평가)
 - [ ] 에피소드 품질 자동 스코어링 (길이·부드러움·성공 여부)
-- [ ] 카메라 관측 추가: 오프스크린 렌더 → 데이터셋 비디오 스트림 (LeRobot 표준)
 
 ## 3단계 — 실물 이식 (sim2real)
 
