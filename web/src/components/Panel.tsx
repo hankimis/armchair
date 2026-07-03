@@ -194,6 +194,60 @@ export function Panel() {
       </section>
 
       <section>
+        <h2>policy</h2>
+        <input
+          type="file"
+          accept=".onnx"
+          disabled={policyStatus === 'running'}
+          onChange={async (e) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            setPolicy('loading', file.name)
+            try {
+              await loadPolicy(file)
+              setPolicy('loaded', file.name)
+            } catch (err) {
+              console.warn('policy load failed', err)
+              setPolicy('error', file.name)
+            }
+          }}
+        />
+        {policyStatus !== 'none' && (
+          <>
+            <button
+              className={policyStatus === 'running' ? 'wide active-toggle' : 'wide'}
+              disabled={policyStatus === 'loading' || policyStatus === 'error' || recording || playingId !== null}
+              onClick={() => {
+                if (policyStatus === 'running') {
+                  stopPolicy()
+                  setPolicy('loaded')
+                } else {
+                  startPolicy(() => setPolicy('error'))
+                  setPolicy('running')
+                }
+              }}
+            >
+              {policyStatus === 'running' ? 'stop policy' : 'run policy'}
+            </button>
+            <p className="hint">
+              <span className="mono">{policyName}</span> —{' '}
+              {policyStatus === 'loading'
+                ? 'loading…'
+                : policyStatus === 'error'
+                  ? 'failed (expects obs[1,9] → action[…,6], see scripts/export_policy_onnx.py)'
+                  : policyStatus === 'running'
+                    ? 'driving the arm at 30 Hz'
+                    : 'ready'}
+            </p>
+          </>
+        )}
+        <p className="hint">
+          train on your episodes, then watch it drive this arm — try{' '}
+          <span className="mono">examples/policy_bc.onnx</span> or see <span className="mono">docs/TRAINING.md</span>
+        </p>
+      </section>
+
+      <section>
         <h2>hand control</h2>
         <button className={handEnabled ? 'wide active-toggle' : 'wide'} onClick={() => setHandEnabled(!handEnabled)}>
           {handEnabled ? 'disable hand control' : 'enable hand control (webcam)'}
@@ -250,59 +304,6 @@ export function Panel() {
             </p>
           </>
         )}
-      </section>
-
-      <section>
-        <h2>policy</h2>
-        <input
-          type="file"
-          accept=".onnx"
-          disabled={policyStatus === 'running'}
-          onChange={async (e) => {
-            const file = e.target.files?.[0]
-            if (!file) return
-            setPolicy('loading', file.name)
-            try {
-              await loadPolicy(file)
-              setPolicy('loaded', file.name)
-            } catch (err) {
-              console.warn('policy load failed', err)
-              setPolicy('error', file.name)
-            }
-          }}
-        />
-        {policyStatus !== 'none' && (
-          <>
-            <button
-              className={policyStatus === 'running' ? 'wide active-toggle' : 'wide'}
-              disabled={policyStatus === 'loading' || policyStatus === 'error' || recording || playingId !== null}
-              onClick={() => {
-                if (policyStatus === 'running') {
-                  stopPolicy()
-                  setPolicy('loaded')
-                } else {
-                  startPolicy(() => setPolicy('error'))
-                  setPolicy('running')
-                }
-              }}
-            >
-              {policyStatus === 'running' ? 'stop policy' : 'run policy'}
-            </button>
-            <p className="hint">
-              <span className="mono">{policyName}</span> —{' '}
-              {policyStatus === 'loading'
-                ? 'loading…'
-                : policyStatus === 'error'
-                  ? 'failed (expects obs[1,9] → action[…,6], see scripts/export_policy_onnx.py)'
-                  : policyStatus === 'running'
-                    ? 'driving the arm at 30 Hz'
-                    : 'ready'}
-            </p>
-          </>
-        )}
-        <p className="hint">
-          train on your episodes, then watch it drive this arm — see <span className="mono">docs/TRAINING.md</span>
-        </p>
       </section>
 
       <section>

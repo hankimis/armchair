@@ -1,6 +1,21 @@
 # Train a policy on your browser demos — and watch it drive the arm
 
-The full loop: **teleoperate in the browser → export → train ACT → export ONNX → run the policy back in the browser.** No robot required.
+The full loop: **teleoperate in the browser → export → train → export ONNX → run the policy back in the browser.** No robot required.
+
+## Quick path: the built-in BC trainer (no GPU, no lerobot)
+
+```bash
+pip install numpy onnx
+python scripts/train_bc.py armchair_dataset_*.zip --out my_policy.onnx
+```
+
+Trains a small MLP with stacked observations (K=3) and action-chunk targets (H=8) in a couple of minutes on CPU, and exports an `.onnx` the app runs directly. The shipped sample (`examples/policy_bc.onnx`) was trained this way on ~1,400 noise-injected scripted demonstrations and scored 16/16 on random cube placements. Things that matter, learned the hard way:
+
+- **Action chunks + lookahead execution.** Predicting only the next 30 Hz target collapses to `target ≈ current joints` and the arm barely moves in closed loop. The trainer predicts an 8-step chunk and the runner executes the *last* step as a ~0.27 s lookahead waypoint.
+- **Noise-injected demonstrations.** Pure clean demos fail on compounding error — the policy drifts slightly off-distribution and never recovers. Record some episodes where you wobble and correct yourself; the correction labels are what make the policy robust.
+- **Vary your starting pose and cube placement.** The policy only knows states it has seen.
+
+## Full path: ACT with lerobot
 
 ## 1. Collect demonstrations
 

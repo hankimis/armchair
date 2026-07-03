@@ -101,6 +101,16 @@ export function spawnPoint() {
   return SPAWNS[sim.spawnIdx]
 }
 
+/** Places the cube at an arbitrary spot (domain randomization, evaluation). */
+export function placeCube(x: number, z: number) {
+  sim.cube.held = false
+  sim.cube.x = x
+  sim.cube.y = CUBE_HALF
+  sim.cube.z = z
+  sim.cube.q = [0, 0, 0, 1]
+  resetCubePhysics({ x, z })
+}
+
 export function syncGizmoToTip() {
   const tip = fkTip(sim.joints)
   sim.ee.x = tip.x

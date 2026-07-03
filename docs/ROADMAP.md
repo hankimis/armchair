@@ -29,7 +29,9 @@
 ## 2단계 — 정책 학습 (다음)
 
 - [x] ACT 학습 튜토리얼 (docs/TRAINING.md) + ONNX 변환기 (scripts/export_policy_onnx.py)
-- [ ] 실제 ACT 정책 학습·시뮬 내 성공률 벤치마크 (자동 롤아웃 평가)
+- [x] 내장 BC 학습기 (scripts/train_bc.py — 관측 스태킹 K=3, 액션 청크 H=8, 노이즈 주입 데이터, numpy만 사용)
+- [x] 학습된 샘플 정책 동봉 (examples/policy_bc.onnx) — 랜덤 스폰 평가 16/16 성공, 중앙값 0.9초
+- [ ] ACT(transformer) 학습 벤치마크 및 BC 대비 비교
 - [ ] 에피소드 품질 자동 스코어링 (길이·부드러움·성공 여부)
 
 ## 3단계 — 실물 이식 (sim2real)

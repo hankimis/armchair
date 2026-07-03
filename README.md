@@ -45,6 +45,21 @@ That's it. You are teleoperating a robot arm.
 
 Hand-tracking mapping constants (axis signs, ranges, pinch thresholds) live at the top of [`web/src/lib/hand.ts`](web/src/lib/hand.ts) — tune them to taste.
 
+## Teach it, then let it drive
+
+![policy demo](docs/assets/demo_policy.gif)
+
+That's not teleoperation — that's a learned policy (`examples/policy_bc.onnx`, 1.2 MB) picking cubes on its own, running entirely in the browser via onnxruntime-web. In our evaluation it cleared **16/16 random cube placements, median 0.9 s per pick** — faster than the demonstrations it was trained on, because it commits to lookahead waypoints instead of imitating the human's pauses.
+
+Train your own in minutes, no GPU and no lerobot needed:
+
+```bash
+pip install numpy onnx
+python scripts/train_bc.py your_exported_dataset.zip --out my_policy.onnx
+```
+
+`train_bc.py` is a ~200-line behavior-cloning MLP (stacked observations, action-chunk prediction, noise-injected robustness — the same ideas ACT uses, minus the transformer). Load the `.onnx` in the app's **policy** section and press run. For the full ACT pipeline see [docs/TRAINING.md](docs/TRAINING.md).
+
 ## From browser to LeRobot dataset
 
 ```bash
@@ -92,6 +107,7 @@ Sim-first, hardware later — see [docs/ROADMAP.md](docs/ROADMAP.md).
 - [x] rigid-body physics (Rapier WASM)
 - [x] camera observations (offscreen render → dataset video streams)
 - [x] in-browser policy playback (onnxruntime-web) + ACT training guide
+- [x] built-in CPU trainer (`scripts/train_bc.py`) + shipped sample policy (16/16 eval)
 - [ ] multi-cube / randomized task variants
 - [ ] policy rollout success-rate benchmark in the sim
 - [ ] leader-arm and gamepad input
