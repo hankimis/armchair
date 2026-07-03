@@ -1,0 +1,4 @@
+# convert_to_lerobot.py + so101_bridge.py
+lerobot>=0.3
+websockets>=12
+numpy

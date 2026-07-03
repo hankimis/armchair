@@ -1,0 +1,8 @@
+node_modules/
+dist/
+web/public/mediapipe/
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+*.local
